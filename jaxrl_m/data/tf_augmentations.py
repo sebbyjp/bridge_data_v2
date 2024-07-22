@@ -13,15 +13,11 @@ def random_resized_crop(image, scale, ratio, seed, batched=False):
     width = tf.shape(image)[-2]
 
     random_scales = tf.random.stateless_uniform((batch_size,), seed, scale[0], scale[1])
-    random_ratios = tf.exp(
-        tf.random.stateless_uniform((batch_size,), seed, log_ratio[0], log_ratio[1])
-    )
+    random_ratios = tf.exp(tf.random.stateless_uniform((batch_size,), seed, log_ratio[0], log_ratio[1]))
 
     new_heights = tf.clip_by_value(tf.sqrt(random_scales / random_ratios), 0, 1)
     new_widths = tf.clip_by_value(tf.sqrt(random_scales * random_ratios), 0, 1)
-    height_offsets = tf.random.stateless_uniform(
-        (batch_size,), seed, 0, 1 - new_heights
-    )
+    height_offsets = tf.random.stateless_uniform((batch_size,), seed, 0, 1 - new_heights)
     width_offsets = tf.random.stateless_uniform((batch_size,), seed, 0, 1 - new_widths)
 
     bounding_boxes = tf.stack(
@@ -40,14 +36,10 @@ def random_resized_crop(image, scale, ratio, seed, batched=False):
         image = tf.reshape(image, [batch_size * obs_horizon, height, width, -1])
         # repeat bounding_boxes so each obs history is augmented the same
         bounding_boxes = tf.repeat(bounding_boxes, obs_horizon, axis=0)
-        image = tf.image.crop_and_resize(
-            image, bounding_boxes, tf.range(batch_size * obs_horizon), (height, width)
-        )
+        image = tf.image.crop_and_resize(image, bounding_boxes, tf.range(batch_size * obs_horizon), (height, width))
         image = tf.reshape(image, [batch_size, obs_horizon, height, width, -1])
     else:
-        image = tf.image.crop_and_resize(
-            image, bounding_boxes, tf.range(batch_size), (height, width)
-        )
+        image = tf.image.crop_and_resize(image, bounding_boxes, tf.range(batch_size), (height, width))
 
     if not batched:
         return image[0]
@@ -69,9 +61,7 @@ def augment(image, seed, **augment_kwargs):
     image = tf.cast(image, tf.float32) / 255  # convert images to [0, 1]
     for op in augment_kwargs["augment_order"]:
         if op in augment_kwargs:
-            if isinstance(augment_kwargs[op], Mapping) or isinstance(
-                augment_kwargs[op], ConfigDict
-            ):
+            if isinstance(augment_kwargs[op], Mapping) or isinstance(augment_kwargs[op], ConfigDict):
                 image = AUGMENT_OPS[op](image, seed=seed, **augment_kwargs[op])
             else:
                 image = AUGMENT_OPS[op](image, seed=seed, *augment_kwargs[op])
@@ -88,30 +78,18 @@ def augment_batch(images, seed, **augment_kwargs):
     batch_size = tf.shape(images)[0]
     sub_seeds = [seed]
     for _ in range(batch_size):
-        sub_seeds.append(
-            tf.random.stateless_uniform(
-                [2], seed=sub_seeds[-1], minval=None, maxval=None, dtype=tf.int32
-            )
-        )
+        sub_seeds.append(tf.random.stateless_uniform([2], seed=sub_seeds[-1], minval=None, maxval=None, dtype=tf.int32))
     images = tf.cast(images, tf.float32) / 255  # convert images to [0, 1]
     for op in augment_kwargs["augment_order"]:
         if op in augment_kwargs:
-            if isinstance(augment_kwargs[op], Mapping) or isinstance(
-                augment_kwargs[op], ConfigDict
-            ):
+            if isinstance(augment_kwargs[op], Mapping) or isinstance(augment_kwargs[op], ConfigDict):
                 # this is random_resized_crop which can handle batches
                 assert op == "random_resized_crop"
-                images = AUGMENT_OPS[op](
-                    images, seed=seed, batched=True, **augment_kwargs[op]
-                )
+                images = AUGMENT_OPS[op](images, seed=seed, batched=True, **augment_kwargs[op])
             else:
                 images_list = []
                 for i in range(batch_size):
-                    images_list.append(
-                        AUGMENT_OPS[op](
-                            images[i], seed=sub_seeds[i], *augment_kwargs[op]
-                        )
-                    )
+                    images_list.append(AUGMENT_OPS[op](images[i], seed=sub_seeds[i], *augment_kwargs[op]))
                 images = tf.stack(images_list)
         else:
             images_list = []

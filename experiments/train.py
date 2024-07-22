@@ -60,9 +60,7 @@ def main(_):
     # set up wandb and logging
     wandb_config = WandBLogger.get_default_config()
     wandb_config.update({"project": "jaxrl_m_bridgedata", "exp_descriptor": FLAGS.name})
-    wandb_logger = WandBLogger(
-        wandb_config=wandb_config, variant=FLAGS.config.to_dict(), debug=FLAGS.debug
-    )
+    wandb_logger = WandBLogger(wandb_config=wandb_config, variant=FLAGS.config.to_dict(), debug=FLAGS.debug)
 
     save_dir = tf.io.gfile.join(
         FLAGS.config.save_dir,
@@ -73,20 +71,12 @@ def main(_):
     # load datasets
     assert type(FLAGS.bridgedata_config.include[0]) == list
     task_paths = [
-        glob_to_path_list(
-            path, prefix=FLAGS.config.data_path, exclude=FLAGS.bridgedata_config.exclude
-        )
+        glob_to_path_list(path, prefix=FLAGS.config.data_path, exclude=FLAGS.bridgedata_config.exclude)
         for path in FLAGS.bridgedata_config.include
     ]
 
-    train_paths = [
-        [os.path.join(path, "train/out.tfrecord") for path in sub_list]
-        for sub_list in task_paths
-    ]
-    val_paths = [
-        [os.path.join(path, "val/out.tfrecord") for path in sub_list]
-        for sub_list in task_paths
-    ]
+    train_paths = [[os.path.join(path, "train/out.tfrecord") for path in sub_list] for sub_list in task_paths]
+    val_paths = [[os.path.join(path, "val/out.tfrecord") for path in sub_list] for sub_list in task_paths]
 
     train_data = BridgeDataset(
         train_paths,
@@ -109,27 +99,19 @@ def main(_):
     if FLAGS.config.get("text_processor") is None:
         text_processor = None
     else:
-        text_processor = text_processors[FLAGS.config.text_processor](
-            **FLAGS.config.text_processor_kwargs
-        )
+        text_processor = text_processors[FLAGS.config.text_processor](**FLAGS.config.text_processor_kwargs)
 
     def process_text(batch):
         if text_processor is not None:
-            batch["goals"]["language"] = text_processor.encode(
-                [s.decode("utf-8") for s in batch["goals"]["language"]]
-            )
+            batch["goals"]["language"] = text_processor.encode([s.decode("utf-8") for s in batch["goals"]["language"]])
         return batch
 
-    train_data_iter = map(
-        shard_fn, map(process_text, train_data.tf_dataset.as_numpy_iterator())
-    )
+    train_data_iter = map(shard_fn, map(process_text, train_data.tf_dataset.as_numpy_iterator()))
 
     example_batch = next(train_data_iter)
     logging.info(f"Batch size: {example_batch['observations']['image'].shape[0]}")
     logging.info(f"Number of devices: {num_devices}")
-    logging.info(
-        f"Batch size per device: {example_batch['observations']['image'].shape[0] // num_devices}"
-    )
+    logging.info(f"Batch size per device: {example_batch['observations']['image'].shape[0] // num_devices}")
 
     # define encoder
     encoder_def = encoders[FLAGS.config.encoder](**FLAGS.config.encoder_kwargs)
@@ -177,9 +159,7 @@ def main(_):
 
         if (i + 1) % FLAGS.config.save_interval == 0:
             logging.info("Saving checkpoint...")
-            checkpoint_path = checkpoints.save_checkpoint(
-                save_dir, agent, step=i + 1, keep=1e6
-            )
+            checkpoint_path = checkpoints.save_checkpoint(save_dir, agent, step=i + 1, keep=1e6)
             logging.info("Saved checkpoint to %s", checkpoint_path)
 
         timer.tock("total")

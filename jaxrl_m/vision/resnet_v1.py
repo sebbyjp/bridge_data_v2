@@ -44,9 +44,7 @@ class SpatialSoftmax(nn.Module):
         if self.temperature == -1:
             from jax.nn import initializers
 
-            temperature = self.param(
-                "softmax_temperature", initializers.ones, (1), jnp.float32
-            )
+            temperature = self.param("softmax_temperature", initializers.ones, (1), jnp.float32)
         else:
             temperature = 1.0
 
@@ -57,17 +55,11 @@ class SpatialSoftmax(nn.Module):
 
         assert len(features.shape) == 4
         batch_size, num_featuremaps = features.shape[0], features.shape[3]
-        features = features.transpose(0, 3, 1, 2).reshape(
-            batch_size, num_featuremaps, self.height * self.width
-        )
+        features = features.transpose(0, 3, 1, 2).reshape(batch_size, num_featuremaps, self.height * self.width)
 
         softmax_attention = nn.softmax(features / temperature)
-        expected_x = jnp.sum(
-            self.pos_x * softmax_attention, axis=2, keepdims=True
-        ).reshape(batch_size, num_featuremaps)
-        expected_y = jnp.sum(
-            self.pos_y * softmax_attention, axis=2, keepdims=True
-        ).reshape(batch_size, num_featuremaps)
+        expected_x = jnp.sum(self.pos_x * softmax_attention, axis=2, keepdims=True).reshape(batch_size, num_featuremaps)
+        expected_y = jnp.sum(self.pos_y * softmax_attention, axis=2, keepdims=True).reshape(batch_size, num_featuremaps)
         expected_xy = jnp.concatenate([expected_x, expected_y], axis=1)
 
         expected_xy = jnp.reshape(expected_xy, [batch_size, 2 * num_featuremaps])
@@ -104,9 +96,7 @@ class SpatialLearnedEmbeddings(nn.Module):
 
         batch_size = features.shape[0]
         assert len(features.shape) == 4
-        features = jnp.sum(
-            jnp.expand_dims(features, -1) * jnp.expand_dims(kernel, 0), axis=(1, 2)
-        )
+        features = jnp.sum(jnp.expand_dims(features, -1) * jnp.expand_dims(kernel, 0), axis=(1, 2))
         features = jnp.reshape(features, [batch_size, -1])
 
         if no_batch_dim:
@@ -144,9 +134,7 @@ class ResNetBlock(nn.Module):
         y = self.norm()(y)
 
         if residual.shape != y.shape:
-            residual = self.conv(self.filters, (1, 1), self.strides, name="conv_proj")(
-                residual
-            )
+            residual = self.conv(self.filters, (1, 1), self.strides, name="conv_proj")(residual)
             residual = self.norm(name="norm_proj")(residual)
 
         return self.act(residual + y)
@@ -174,9 +162,7 @@ class BottleneckResNetBlock(nn.Module):
         y = self.norm(scale_init=nn.initializers.zeros)(y)
 
         if residual.shape != y.shape:
-            residual = self.conv(
-                self.filters * 4, (1, 1), self.strides, name="conv_proj"
-            )(residual)
+            residual = self.conv(self.filters * 4, (1, 1), self.strides, name="conv_proj")(residual)
             residual = self.norm(name="norm_proj")(residual)
 
         return self.act(residual + y)
@@ -225,9 +211,7 @@ class ResNetEncoder(nn.Module):
 
         act = getattr(nn, self.act)
 
-        x = conv(
-            self.num_filters, (7, 7), (2, 2), padding=[(3, 3), (3, 3)], name="conv_init"
-        )(x)
+        x = conv(self.num_filters, (7, 7), (2, 2), padding=[(3, 3), (3, 3)], name="conv_init")(x)
 
         x = norm(name="norm_init")(x)
         x = act(x)
@@ -236,24 +220,18 @@ class ResNetEncoder(nn.Module):
             for j in range(block_size):
                 stride = (2, 2) if i > 0 and j == 0 else (1, 1)
                 x = self.block_cls(
-                    self.num_filters * 2 ** i,
+                    self.num_filters * 2**i,
                     strides=stride,
                     conv=conv,
                     norm=norm,
                     act=act,
                 )(x)
                 if self.use_film:
-                    assert (
-                        cond_var is not None
-                    ), "Cond var is None, nothing to condition on"
+                    assert cond_var is not None, "Cond var is None, nothing to condition on"
                     x = FilmConditioning()(x, cond_var)
                 if self.use_multiplicative_cond:
-                    assert (
-                        cond_var is not None
-                    ), "Cond var is None, nothing to condition on"
-                    cond_out = nn.Dense(
-                        x.shape[-1], kernel_init=nn.initializers.xavier_normal()
-                    )(cond_var)
+                    assert cond_var is not None, "Cond var is None, nothing to condition on"
+                    cond_out = nn.Dense(x.shape[-1], kernel_init=nn.initializers.xavier_normal())(cond_var)
                     x_mult = jnp.expand_dims(jnp.expand_dims(cond_out, 1), 1)
                     x = x * x_mult
 
@@ -267,14 +245,10 @@ class ResNetEncoder(nn.Module):
             )(x)
         elif self.pooling_method == "spatial_softmax":
             height, width, channel = x.shape[-3:]
-            pos_x, pos_y = jnp.meshgrid(
-                jnp.linspace(-1.0, 1.0, height), jnp.linspace(-1.0, 1.0, width)
-            )
+            pos_x, pos_y = jnp.meshgrid(jnp.linspace(-1.0, 1.0, height), jnp.linspace(-1.0, 1.0, width))
             pos_x = pos_x.reshape(height * width)
             pos_y = pos_y.reshape(height * width)
-            x = SpatialSoftmax(
-                height, width, channel, pos_x, pos_y, self.softmax_temperature
-            )(x)
+            x = SpatialSoftmax(height, width, channel, pos_x, pos_y, self.softmax_temperature)(x)
         elif self.pooling_method == "avg":
             x = jnp.mean(x, axis=(-3, -2))
         elif self.pooling_method == "max":
@@ -288,21 +262,11 @@ class ResNetEncoder(nn.Module):
 
 
 resnetv1_configs = {
-    "resnetv1-18": ft.partial(
-        ResNetEncoder, stage_sizes=(2, 2, 2, 2), block_cls=ResNetBlock
-    ),
-    "resnetv1-34": ft.partial(
-        ResNetEncoder, stage_sizes=(3, 4, 6, 3), block_cls=ResNetBlock
-    ),
-    "resnetv1-50": ft.partial(
-        ResNetEncoder, stage_sizes=[3, 4, 6, 3], block_cls=BottleneckResNetBlock
-    ),
-    "resnetv1-18-deeper": ft.partial(
-        ResNetEncoder, stage_sizes=(3, 3, 3, 3), block_cls=ResNetBlock
-    ),
-    "resnetv1-18-deepest": ft.partial(
-        ResNetEncoder, stage_sizes=(4, 4, 4, 4), block_cls=ResNetBlock
-    ),
+    "resnetv1-18": ft.partial(ResNetEncoder, stage_sizes=(2, 2, 2, 2), block_cls=ResNetBlock),
+    "resnetv1-34": ft.partial(ResNetEncoder, stage_sizes=(3, 4, 6, 3), block_cls=ResNetBlock),
+    "resnetv1-50": ft.partial(ResNetEncoder, stage_sizes=[3, 4, 6, 3], block_cls=BottleneckResNetBlock),
+    "resnetv1-18-deeper": ft.partial(ResNetEncoder, stage_sizes=(3, 3, 3, 3), block_cls=ResNetBlock),
+    "resnetv1-18-deepest": ft.partial(ResNetEncoder, stage_sizes=(4, 4, 4, 4), block_cls=ResNetBlock),
     "resnetv1-18-bridge": ft.partial(
         ResNetEncoder,
         stage_sizes=(2, 2, 2, 2),

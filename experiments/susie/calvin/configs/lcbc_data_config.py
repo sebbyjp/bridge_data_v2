@@ -20,7 +20,7 @@ ACT_STD = [
     1.0049515,
 ]
 
-PROPRIO_MEAN = [ # We don't actually use proprio so we're using dummy values for this
+PROPRIO_MEAN = [  # We don't actually use proprio so we're using dummy values for this
     0.0,
     0.0,
     0.0,
@@ -38,7 +38,7 @@ PROPRIO_MEAN = [ # We don't actually use proprio so we're using dummy values for
     0.0,
 ]
 
-PROPRIO_STD = [ # We don't actually use proprio so we're using dummy values for this
+PROPRIO_STD = [  # We don't actually use proprio so we're using dummy values for this
     1.0,
     1.0,
     1.0,
@@ -62,15 +62,10 @@ ACTION_PROPRIO_METADATA = {
         "std": ACT_STD,
         # TODO compute these
         "min": ACT_MEAN,
-        "max": ACT_STD
+        "max": ACT_STD,
     },
     # TODO compute these
-    "proprio": {
-        "mean": PROPRIO_MEAN,
-        "std": PROPRIO_STD,
-        "min": PROPRIO_MEAN,
-        "max": PROPRIO_STD
-    }
+    "proprio": {"mean": PROPRIO_MEAN, "std": PROPRIO_STD, "min": PROPRIO_MEAN, "max": PROPRIO_STD},
 }
 
 
@@ -79,18 +74,14 @@ def get_config(config_string):
         "all": ml_collections.ConfigDict(
             {
                 "include": [
-                    [
-                        "training/A/?*",
-                        "training/B/?*",
-                        "training/C/?*"
-                    ],
+                    ["training/A/?*", "training/B/?*", "training/C/?*"],
                     [
                         "validation/D/?*",
-                    ]
+                    ],
                 ],
                 "exclude": [],
                 "sample_weights": None,
-                "action_proprio_metadata": ACTION_PROPRIO_METADATA
+                "action_proprio_metadata": ACTION_PROPRIO_METADATA,
             }
         ),
     }

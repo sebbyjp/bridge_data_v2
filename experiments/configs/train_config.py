@@ -63,9 +63,7 @@ def get_config(config_string):
                     **base_data_config,
                 ),
                 encoder="resnetv1-34-bridge",
-                encoder_kwargs=dict(
-                    pooling_method="avg", add_spatial_coordinates=True, act="swish"
-                ),
+                encoder_kwargs=dict(pooling_method="avg", add_spatial_coordinates=True, act="swish"),
                 **base_real_config,
             )
         ),
@@ -93,9 +91,7 @@ def get_config(config_string):
                     **base_data_config,
                 ),
                 encoder="resnetv1-34-bridge",
-                encoder_kwargs=dict(
-                    pooling_method="avg", add_spatial_coordinates=True, act="swish"
-                ),
+                encoder_kwargs=dict(pooling_method="avg", add_spatial_coordinates=True, act="swish"),
                 **base_real_config,
             )
         ),
@@ -127,9 +123,7 @@ def get_config(config_string):
                 text_processor="muse_embedding",
                 text_processor_kwargs=dict(),
                 encoder="resnetv1-34-bridge-film",
-                encoder_kwargs=dict(
-                    pooling_method="avg", add_spatial_coordinates=True, act="swish"
-                ),
+                encoder_kwargs=dict(pooling_method="avg", add_spatial_coordinates=True, act="swish"),
                 **base_real_config,
             )
         ),
@@ -164,9 +158,7 @@ def get_config(config_string):
                     **base_data_config,
                 ),
                 encoder="resnetv1-34-bridge",
-                encoder_kwargs=dict(
-                    pooling_method="avg", add_spatial_coordinates=True, act="swish"
-                ),
+                encoder_kwargs=dict(pooling_method="avg", add_spatial_coordinates=True, act="swish"),
                 **base_real_config,
             )
         ),
@@ -174,13 +166,9 @@ def get_config(config_string):
             dict(
                 agent="stable_contrastive_rl",
                 agent_kwargs=dict(
-                    critic_network_kwargs=dict(
-                        hidden_dims=(256, 256, 256), use_layer_norm=True
-                    ),
+                    critic_network_kwargs=dict(hidden_dims=(256, 256, 256), use_layer_norm=True),
                     critic_kwargs=dict(init_final=1e-12, repr_dim=16, twin_q=True),
-                    policy_network_kwargs=dict(
-                        hidden_dims=(256, 256, 256), dropout_rate=0.1
-                    ),
+                    policy_network_kwargs=dict(hidden_dims=(256, 256, 256), dropout_rate=0.1),
                     policy_kwargs=dict(
                         tanh_squash_distribution=False,
                         state_dependent_std=False,
@@ -206,9 +194,7 @@ def get_config(config_string):
                     **base_data_config,
                 ),
                 encoder="resnetv1-34-bridge",
-                encoder_kwargs=dict(
-                    pooling_method="avg", add_spatial_coordinates=False, act="swish"
-                ),
+                encoder_kwargs=dict(pooling_method="avg", add_spatial_coordinates=False, act="swish"),
                 **base_real_config,
             )
         ),

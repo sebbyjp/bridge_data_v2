@@ -75,9 +75,7 @@ def main(_):
     # load datasets
     assert type(FLAGS.calvin_dataset_config.include[0]) == list
     task_paths = [
-        glob_to_path_list(
-            path, prefix=FLAGS.config.data_path, exclude=FLAGS.calvin_dataset_config.exclude
-        )
+        glob_to_path_list(path, prefix=FLAGS.config.data_path, exclude=FLAGS.calvin_dataset_config.exclude)
         for path in FLAGS.calvin_dataset_config.include
     ]
 
@@ -109,9 +107,7 @@ def main(_):
     example_batch = next(train_data_iter)
     logging.info(f"Batch size: {example_batch['observations']['image'].shape[0]}")
     logging.info(f"Number of devices: {num_devices}")
-    logging.info(
-        f"Batch size per device: {example_batch['observations']['image'].shape[0] // num_devices}"
-    )
+    logging.info(f"Batch size per device: {example_batch['observations']['image'].shape[0] // num_devices}")
 
     # we shard the leading dimension (batch dimension) accross all devices evenly
     sharding = jax.sharding.PositionalSharding(devices)
@@ -163,9 +159,7 @@ def main(_):
 
         if (i + 1) % FLAGS.config.save_interval == 0:
             logging.info("Saving checkpoint...")
-            checkpoint_path = checkpoints.save_checkpoint(
-                save_dir, agent, step=i + 1, keep=1e6
-            )
+            checkpoint_path = checkpoints.save_checkpoint(save_dir, agent, step=i + 1, keep=1e6)
             logging.info("Saved checkpoint to %s", checkpoint_path)
 
         timer.tock("total")

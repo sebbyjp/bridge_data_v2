@@ -52,9 +52,7 @@ class GCBCAgent(flax.struct.PyTreeNode):
             )
 
         # compute gradients and update params
-        new_state, info = self.state.apply_loss_fns(
-            loss_fn, pmap_axis=pmap_axis, has_aux=True
-        )
+        new_state, info = self.state.apply_loss_fns(loss_fn, pmap_axis=pmap_axis, has_aux=True)
 
         # log learning rates
         info["lr"] = self.lr_schedule(self.state.step)
@@ -63,13 +61,7 @@ class GCBCAgent(flax.struct.PyTreeNode):
 
     @partial(jax.jit, static_argnames="argmax")
     def sample_actions(
-        self,
-        observations: np.ndarray,
-        goals: np.ndarray,
-        *,
-        seed: PRNGKey,
-        temperature: float = 1.0,
-        argmax=False
+        self, observations: np.ndarray, goals: np.ndarray, *, seed: PRNGKey, temperature: float = 1.0, argmax=False
     ) -> jnp.ndarray:
         dist = self.state.apply_fn(
             {"params": self.state.params},
@@ -137,14 +129,7 @@ class GCBCAgent(flax.struct.PyTreeNode):
         )
 
         network_kwargs["activate_final"] = True
-        networks = {
-            "actor": Policy(
-                encoder_def,
-                MLP(**network_kwargs),
-                action_dim=actions.shape[-1],
-                **policy_kwargs
-            )
-        }
+        networks = {"actor": Policy(encoder_def, MLP(**network_kwargs), action_dim=actions.shape[-1], **policy_kwargs)}
 
         model_def = ModuleDict(networks)
 

@@ -63,9 +63,7 @@ class GCEncodingWrapper(nn.Module):
             # fold batch_size into obs_horizon to encode each frame separately
             obs_image = rearrange(observations["image"], "B T H W C -> (B T) H W C")
             # repeat goals so that there's a goal for each frame
-            goal_image = repeat(
-                goals["image"], "B H W C -> (B repeat) H W C", repeat=obs_horizon
-            )
+            goal_image = repeat(goals["image"], "B H W C -> (B repeat) H W C", repeat=obs_horizon)
         else:
             obs_image = observations["image"]
             goal_image = goals["image"]
@@ -82,9 +80,7 @@ class GCEncodingWrapper(nn.Module):
 
         if len(observations["image"].shape) == 5:
             # unfold obs_horizon from batch_size
-            encoding = rearrange(
-                encoding, "(B T) F -> B (T F)", B=batch_size, T=obs_horizon
-            )
+            encoding = rearrange(encoding, "(B T) F -> B (T F)", B=batch_size, T=obs_horizon)
 
         if self.use_proprio:
             encoding = jnp.concatenate([encoding, observations["proprio"]], axis=-1)
@@ -123,9 +119,7 @@ class LCEncodingWrapper(nn.Module):
             # fold batch_size into obs_horizon to encode each frame separately
             obs_image = rearrange(observations["image"], "B T H W C -> (B T) H W C")
             # repeat language so that there's an instruction for each frame
-            language = repeat(
-                goals["language"], "B E -> (B repeat) E", repeat=obs_horizon
-            )
+            language = repeat(goals["language"], "B E -> (B repeat) E", repeat=obs_horizon)
         else:
             obs_image = observations["image"]
             language = goals["language"]
@@ -134,9 +128,7 @@ class LCEncodingWrapper(nn.Module):
 
         if len(observations["image"].shape) == 5:
             # unfold obs_horizon from batch_size
-            encoding = rearrange(
-                encoding, "(B T) F -> B (T F)", B=batch_size, T=obs_horizon
-            )
+            encoding = rearrange(encoding, "(B T) F -> B (T F)", B=batch_size, T=obs_horizon)
 
         if self.use_proprio:
             encoding = jnp.concatenate([encoding, observations["proprio"]], axis=-1)

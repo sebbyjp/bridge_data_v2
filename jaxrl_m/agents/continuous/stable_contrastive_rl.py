@@ -46,9 +46,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
                 assert len(logits.shape) == 3
 
                 goal_indices = jnp.roll(jnp.arange(batch_size, dtype=jnp.int32), -1)
-                random_goals = jax.tree_util.tree_map(
-                    lambda x: x[goal_indices], new_goals
-                )
+                random_goals = jax.tree_util.tree_map(lambda x: x[goal_indices], new_goals)
 
                 rng, key = jax.random.split(rng)
                 next_dist = self.state.apply_fn(
@@ -64,9 +62,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
 
                 rng, key = jax.random.split(rng)
                 next_logits = self.state.apply_fn(
-                    {
-                        "params": self.state.target_params
-                    },  # no gradient flows through here
+                    {"params": self.state.target_params},  # no gradient flows through here
                     (batch["next_observations"], random_goals),
                     next_action,
                     train=self.config["dropout_target_networks"],
@@ -97,11 +93,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
                     logits=neg_logits, labels=jnp.zeros_like(neg_logits)
                 )  # [B, 2]
 
-                critic_loss = (
-                    (1 - self.config["discount"]) * loss_pos
-                    + self.config["discount"] * loss_neg1
-                    + loss_neg2
-                )
+                critic_loss = (1 - self.config["discount"]) * loss_pos + self.config["discount"] * loss_neg1 + loss_neg2
 
                 # Take the mean here so that we can compute the accuracy.
                 logits = jnp.mean(logits, axis=-1)
@@ -124,9 +116,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
                     # and (B - 1) terms for negative pairs in each row
 
                     critic_loss = jax.vmap(
-                        lambda _logits: optax.sigmoid_binary_cross_entropy(
-                            logits=_logits, labels=I
-                        ),
+                        lambda _logits: optax.sigmoid_binary_cross_entropy(logits=_logits, labels=I),
                         in_axes=-1,
                         out_axes=-1,
                     )(logits)
@@ -135,9 +125,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
                     # Take the mean here so that we can compute the accuracy.
                     logits = jnp.mean(logits, axis=-1)
                 else:
-                    critic_loss = optax.sigmoid_binary_cross_entropy(
-                        logits=logits, labels=I
-                    )
+                    critic_loss = optax.sigmoid_binary_cross_entropy(logits=logits, labels=I)
 
             critic_loss = jnp.mean(critic_loss)  # critic loss optimize nothing
             correct = jnp.argmax(logits, axis=1) == jnp.argmax(I, axis=1)
@@ -192,9 +180,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
             mse = ((dist.mode() - batch["actions"]) ** 2).sum(-1)
             gcbc_loss = -log_probs.mean()  # mle loss
 
-            actor_loss = (1.0 - self.config["gcbc_coef"]) * q_action_loss + self.config[
-                "gcbc_coef"
-            ] * gcbc_loss
+            actor_loss = (1.0 - self.config["gcbc_coef"]) * q_action_loss + self.config["gcbc_coef"] * gcbc_loss
 
             return (
                 actor_loss,
@@ -212,9 +198,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
         loss_fns = {"critic": critic_loss_fn, "actor": actor_loss_fn}
 
         # compute gradients and update params
-        new_state, info = self.state.apply_loss_fns(
-            loss_fns, pmap_axis=pmap_axis, has_aux=True
-        )
+        new_state, info = self.state.apply_loss_fns(loss_fns, pmap_axis=pmap_axis, has_aux=True)
 
         # update the target params
         new_state = new_state.target_update(self.config["target_update_rate"])
@@ -259,9 +243,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
         pi_actions = dist.mode()
         log_probs = dist.log_prob(batch["actions"])
         pi_std = dist.stddev().mean()
-        gcbc_val_loss = jnp.mean(
-            jnp.sum((dist.mode() - batch["actions"]) ** 2, axis=-1)
-        )
+        gcbc_val_loss = jnp.mean(jnp.sum((dist.mode() - batch["actions"]) ** 2, axis=-1))
 
         logits = self.state.apply_fn(
             {"params": self.state.params},
@@ -385,9 +367,7 @@ class StableContrastiveRLAgent(flax.struct.PyTreeNode):
 
         rng, init_rng = jax.random.split(rng)
         if len(observations["image"].shape) == 3:
-            observations = jax.tree_map(
-                lambda x: jnp.expand_dims(x, axis=0), observations
-            )
+            observations = jax.tree_map(lambda x: jnp.expand_dims(x, axis=0), observations)
             goals = jax.tree_map(lambda x: jnp.expand_dims(x, axis=0), goals)
             actions = actions[None]
         params = model_def.init(

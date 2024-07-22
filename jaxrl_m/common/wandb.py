@@ -37,13 +37,9 @@ class WandBLogger(object):
     def __init__(self, wandb_config, variant, wandb_output_dir=None, debug=False):
         self.config = wandb_config
         if self.config.unique_identifier == "":
-            self.config.unique_identifier = datetime.datetime.now().strftime(
-                "%Y%m%d_%H%M%S"
-            )
+            self.config.unique_identifier = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        self.config.experiment_id = (
-            self.experiment_id
-        ) = f"{self.config.exp_descriptor}_{self.config.unique_identifier}"  # NOQA
+        self.config.experiment_id = self.experiment_id = f"{self.config.exp_descriptor}_{self.config.unique_identifier}"  # NOQA
 
         print(self.config)
 

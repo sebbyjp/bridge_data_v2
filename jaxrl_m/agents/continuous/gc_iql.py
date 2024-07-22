@@ -36,13 +36,8 @@ class GCIQLAgent(flax.struct.PyTreeNode):
 
         # selects a portion of goals to make negative
         def get_goals_rewards(key):
-            neg_goal_mask = (
-                jax.random.uniform(key, (batch_size,))
-                < self.config["negative_proportion"]
-            )
-            goal_indices = jnp.where(
-                neg_goal_mask, neg_goal_indices, jnp.arange(batch_size)
-            )
+            neg_goal_mask = jax.random.uniform(key, (batch_size,)) < self.config["negative_proportion"]
+            goal_indices = jnp.where(neg_goal_mask, neg_goal_indices, jnp.arange(batch_size))
             new_goals = jax.tree_map(lambda x: x[goal_indices], batch["goals"])
             new_rewards = jnp.where(neg_goal_mask, -1, batch["rewards"])
             return new_goals, new_rewards
@@ -103,9 +98,7 @@ class GCIQLAgent(flax.struct.PyTreeNode):
                 rngs={"dropout": key},
                 name="value",
             )
-            target_q = (
-                batch["rewards"] + self.config["discount"] * next_v * batch["masks"]
-            )
+            target_q = batch["rewards"] + self.config["discount"] * next_v * batch["masks"]
 
             rng, key = jax.random.split(rng)
             v = self.state.apply_fn(
@@ -141,9 +134,7 @@ class GCIQLAgent(flax.struct.PyTreeNode):
         }
 
         # compute gradients and update params
-        new_state, info = self.state.apply_loss_fns(
-            loss_fns, pmap_axis=pmap_axis, has_aux=True
-        )
+        new_state, info = self.state.apply_loss_fns(loss_fns, pmap_axis=pmap_axis, has_aux=True)
 
         # update the target params
         new_state = new_state.target_update(self.config["target_update_rate"])

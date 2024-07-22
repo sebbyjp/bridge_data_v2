@@ -2,11 +2,11 @@ import jax
 import numpy as np
 from pyquaternion import Quaternion
 
+
 def stack_obs(obs):
     dict_list = {k: [dic[k] for dic in obs] for k in obs[0]}
-    return jax.tree_map(
-        lambda x: np.stack(x), dict_list, is_leaf=lambda x: type(x) == list
-    )
+    return jax.tree_map(lambda x: np.stack(x), dict_list, is_leaf=lambda x: type(x) == list)
+
 
 def state_to_eep(xyz_coor, zangle: float):
     """
@@ -15,13 +15,10 @@ def state_to_eep(xyz_coor, zangle: float):
     return a 4x4 matrix
     """
     assert len(xyz_coor) == 3
-    DEFAULT_ROTATION = np.array([[0 , 0, 1.0],
-                             [0, 1.0,  0],
-                             [-1.0,  0, 0]])
+    DEFAULT_ROTATION = np.array([[0, 0, 1.0], [0, 1.0, 0], [-1.0, 0, 0]])
     new_pose = np.eye(4)
     new_pose[:3, -1] = xyz_coor
-    new_quat = Quaternion(axis=np.array([0.0, 0.0, 1.0]), angle=zangle) \
-        * Quaternion(matrix=DEFAULT_ROTATION)
+    new_quat = Quaternion(axis=np.array([0.0, 0.0, 1.0]), angle=zangle) * Quaternion(matrix=DEFAULT_ROTATION)
     new_pose[:3, :3] = new_quat.rotation_matrix
     # yaw, pitch, roll = quat.yaw_pitch_roll
     return new_pose

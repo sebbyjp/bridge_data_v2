@@ -9,9 +9,7 @@ from jaxrl_m.data.tf_augmentations import augment
 from jaxrl_m.data.tf_goal_relabeling import GOAL_RELABELING_FUNCTIONS
 
 
-def glob_to_path_list(
-    glob_strs: Union[str, List[str]], prefix: str = "", exclude: Iterable[str] = ()
-):
+def glob_to_path_list(glob_strs: Union[str, List[str]], prefix: str = "", exclude: Iterable[str] = ()):
     """Converts a glob string or list of glob strings to a list of paths."""
     if isinstance(glob_strs, str):
         glob_strs = [glob_strs]
@@ -27,6 +25,7 @@ def glob_to_path_list(
         assert len(filtered_paths) > 0, f"{glob_str} came up empty"
         path_list += filtered_paths
     return path_list
+
 
 class CalvinDataset:
     """
@@ -131,24 +130,16 @@ class CalvinDataset:
             # shuffle and repeat each sub-dataset, allocating the shuffle buffer
             # by sample_weights
             for i in range(len(datasets)):
-                datasets[i] = (
-                    datasets[i]
-                    .shuffle(int(shuffle_buffer_size * sample_weights[i]), seed + i)
-                    .repeat()
-                )
+                datasets[i] = datasets[i].shuffle(int(shuffle_buffer_size * sample_weights[i]), seed + i).repeat()
 
         # for validation, we want to be able to iterate through the entire dataset;
         # for training, we want to make sure that no sub-dataset is ever exhausted
         # or the sampling ratios will be off. this should never happen because of the
         # repeat() above, but `stop_on_empty_dataset` is a safeguard
-        dataset = tf.data.Dataset.sample_from_datasets(
-            datasets, sample_weights, seed=seed, stop_on_empty_dataset=train
-        )
+        dataset = tf.data.Dataset.sample_from_datasets(datasets, sample_weights, seed=seed, stop_on_empty_dataset=train)
 
         if skip_unlabeled:
-            dataset = dataset.filter(
-                lambda x: tf.math.reduce_any(x["goals"]["language"] != "")
-            )
+            dataset = dataset.filter(lambda x: tf.math.reduce_any(x["goals"]["language"] != ""))
 
         if train and augment:
             # apply augmentations, using a sequence of integers as seeds.
@@ -182,7 +173,7 @@ class CalvinDataset:
         dataset = dataset.map(self._decode_example, num_parallel_calls=tf.data.AUTOTUNE)
 
         # yields trajectories
-        #dataset = dataset.map(self._process_actions, num_parallel_calls=tf.data.AUTOTUNE) # we're skipping action normalization
+        # dataset = dataset.map(self._process_actions, num_parallel_calls=tf.data.AUTOTUNE) # we're skipping action normalization
 
         # yields trajectories
         dataset = dataset.map(self._chunk_act_obs, num_parallel_calls=tf.data.AUTOTUNE)
@@ -208,10 +199,7 @@ class CalvinDataset:
 
     def _decode_example(self, example_proto):
         # decode the example proto according to PROTO_TYPE_SPEC
-        features = {
-            key: tf.io.FixedLenFeature([], tf.string)
-            for key in self.PROTO_TYPE_SPEC.keys()
-        }
+        features = {key: tf.io.FixedLenFeature([], tf.string) for key in self.PROTO_TYPE_SPEC.keys()}
         parsed_features = tf.io.parse_single_example(example_proto, features)
         parsed_tensors = {}
         for key, dtype in self.PROTO_TYPE_SPEC.items():
@@ -231,7 +219,7 @@ class CalvinDataset:
             },
             **({"language": parsed_tensors["language_annotation"]} if self.load_language else {}),
             "actions": parsed_tensors["actions"][:-1],
-            "terminals": tf.zeros_like(parsed_tensors["actions"][:-1][:, 0:1], dtype=tf.bool)
+            "terminals": tf.zeros_like(parsed_tensors["actions"][:-1][:, 0:1], dtype=tf.bool),
         }
 
     def _process_actions(self, traj):
@@ -244,26 +232,18 @@ class CalvinDataset:
                 ) / self.action_proprio_metadata["action"]["std"]
                 for key in ["observations", "next_observations"]:
                     traj[key]["proprio"] = (
-                        traj[key]["proprio"]
-                        - self.action_proprio_metadata["proprio"]["mean"]
+                        traj[key]["proprio"] - self.action_proprio_metadata["proprio"]["mean"]
                     ) / self.action_proprio_metadata["proprio"]["std"]
             elif self.normalization_type == "bounds":
                 # normalize to [0, 1]
-                traj["actions"] = (
-                    traj["actions"] - self.action_proprio_metadata["action"]["min"]
-                ) / (
-                    self.action_proprio_metadata["action"]["max"]
-                    - self.action_proprio_metadata["action"]["min"]
+                traj["actions"] = (traj["actions"] - self.action_proprio_metadata["action"]["min"]) / (
+                    self.action_proprio_metadata["action"]["max"] - self.action_proprio_metadata["action"]["min"]
                 )
                 # clip to [0, 1]
                 traj["actions"] = tf.clip_by_value(traj["actions"], 0, 1)
                 for key in ["observations", "next_observations"]:
-                    traj[key]["proprio"] = (
-                        traj[key]["proprio"]
-                        - self.action_proprio_metadata["proprio"]["min"]
-                    ) / (
-                        self.action_proprio_metadata["proprio"]["max"]
-                        - self.action_proprio_metadata["proprio"]["min"]
+                    traj[key]["proprio"] = (traj[key]["proprio"] - self.action_proprio_metadata["proprio"]["min"]) / (
+                        self.action_proprio_metadata["proprio"]["max"] - self.action_proprio_metadata["proprio"]["min"]
                     )
                     traj[key]["proprio"] = tf.clip_by_value(traj[key]["proprio"], 0, 1)
             else:
@@ -276,23 +256,17 @@ class CalvinDataset:
         if self.act_pred_horizon is not None:
             chunk_indices = tf.broadcast_to(
                 tf.range(self.act_pred_horizon), [traj_len, self.act_pred_horizon]
-            ) + tf.broadcast_to(
-                tf.range(traj_len)[:, None], [traj_len, self.act_pred_horizon]
-            )
+            ) + tf.broadcast_to(tf.range(traj_len)[:, None], [traj_len, self.act_pred_horizon])
             # pads by repeating the last action
             chunk_indices = tf.minimum(chunk_indices, traj_len - 1)
             traj["action_chunks"] = tf.gather(traj["actions"], chunk_indices)
         if self.obs_horizon is not None:
             chunk_indices = tf.broadcast_to(
                 tf.range(-self.obs_horizon + 1, 1), [traj_len, self.obs_horizon]
-            ) + tf.broadcast_to(
-                tf.range(traj_len)[:, None], [traj_len, self.obs_horizon]
-            )
+            ) + tf.broadcast_to(tf.range(traj_len)[:, None], [traj_len, self.obs_horizon])
             # pads by repeating the first observation
             chunk_indices = tf.maximum(chunk_indices, 0)
-            traj["obs_chunks"] = tf.nest.map_structure(
-                lambda x: tf.gather(x, chunk_indices), traj["observations"]
-            )
+            traj["obs_chunks"] = tf.nest.map_structure(lambda x: tf.gather(x, chunk_indices), traj["observations"])
             traj["next_obs_chunks"] = tf.nest.map_structure(
                 lambda x: tf.gather(x, chunk_indices), traj["next_observations"]
             )
@@ -301,19 +275,13 @@ class CalvinDataset:
     def _add_goals(self, traj):
         if self.load_language:
             lang = traj["language"]
-            traj["language"] = tf.broadcast_to(
-                lang, tf.shape(traj["terminals"])
-            )
+            traj["language"] = tf.broadcast_to(lang, tf.shape(traj["terminals"]))
 
-        traj = GOAL_RELABELING_FUNCTIONS[self.goal_relabeling_strategy](
-            traj, **self.goal_relabeling_kwargs
-        )
+        traj = GOAL_RELABELING_FUNCTIONS[self.goal_relabeling_strategy](traj, **self.goal_relabeling_kwargs)
 
         if self.load_language:
             lang = traj["language"]
-            traj["goals"]["language"] = tf.broadcast_to(
-                lang, tf.shape(traj["terminals"])
-            )
+            traj["goals"]["language"] = tf.broadcast_to(lang, tf.shape(traj["terminals"]))
             traj.pop("language")
 
             # always make the "goal" the last obs so that masking is done
@@ -327,19 +295,15 @@ class CalvinDataset:
             # set movement actions to 0 after the goal is reached
             new_movement = tf.where(
                 (
-                    traj["goal_dists"][:, None, None]
-                    > tf.range(self.act_pred_horizon)[None, :, None]
+                    traj["goal_dists"][:, None, None] > tf.range(self.act_pred_horizon)[None, :, None]
                 ),  # shape (traj_len, act_pred_horizon, 1)
-                traj["actions"][
-                    :, :, :-1
-                ],  # shape (traj_len, act_pred_horizon, action_dim - 1)
+                traj["actions"][:, :, :-1],  # shape (traj_len, act_pred_horizon, action_dim - 1)
                 tf.zeros_like(traj["actions"][0, 0, :-1]),  # shape (action_dim - 1)
             )
             # for gripper actions, repeat the last action after the goal is reached
             new_gripper = tf.where(
                 (
-                    traj["goal_dists"][:, None]
-                    > tf.range(self.act_pred_horizon)[None, :]
+                    traj["goal_dists"][:, None] > tf.range(self.act_pred_horizon)[None, :]
                 ),  # shape (traj_len, act_pred_horizon)
                 traj["actions"][:, :, -1],  # shape (traj_len, act_pred_horizon)
                 tf.gather(
@@ -372,20 +336,14 @@ class CalvinDataset:
     def _augment(self, seed, image):
         if self.augment_next_obs_goal_differently:
             sub_seeds = tf.unstack(
-                tf.random.stateless_uniform(
-                    [3, 2], seed=[seed, seed], minval=None, maxval=None, dtype=tf.int32
-                )
+                tf.random.stateless_uniform([3, 2], seed=[seed, seed], minval=None, maxval=None, dtype=tf.int32)
             )
         else:
             # use the same seed for obs, next_obs, and goal
             sub_seeds = [[seed, seed]] * 3
 
-        for key, sub_seed in zip(
-            ["observations", "next_observations", "goals"], sub_seeds
-        ):
-            image[key]["image"] = augment(
-                image[key]["image"], sub_seed, **self.augment_kwargs
-            )
+        for key, sub_seed in zip(["observations", "next_observations", "goals"], sub_seeds):
+            image[key]["image"] = augment(image[key]["image"], sub_seed, **self.augment_kwargs)
         return image
 
     def iterator(self):

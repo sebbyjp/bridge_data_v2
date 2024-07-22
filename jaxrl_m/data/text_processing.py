@@ -75,9 +75,9 @@ class CLIPTextProcessor(TextProcessor):
 
     def encode(self, strings):
         inputs = self.processor(text=strings, **self.kwargs)
-        inputs["position_ids"] = jnp.expand_dims(
-            jnp.arange(inputs["input_ids"].shape[1]), axis=0
-        ).repeat(inputs["input_ids"].shape[0], axis=0)
+        inputs["position_ids"] = jnp.expand_dims(jnp.arange(inputs["input_ids"].shape[1]), axis=0).repeat(
+            inputs["input_ids"].shape[0], axis=0
+        )
         return FrozenDict(inputs)
 
 

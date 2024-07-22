@@ -66,8 +66,8 @@ def get_config(config_string):
                 dataset_kwargs=dict(
                     goal_relabeling_strategy="delta_goals",
                     goal_relabeling_kwargs=dict(goal_delta=[0, 20]),
-                    #goal_relabeling_strategy="uniform",
-                    #goal_relabeling_kwargs=dict(reached_proportion=0.0),
+                    # goal_relabeling_strategy="uniform",
+                    # goal_relabeling_kwargs=dict(reached_proportion=0.0),
                     load_language=True,
                     skip_unlabeled=True,
                     relabel_actions=False,

@@ -32,9 +32,7 @@ class Critic(nn.Module):
     init_final: Optional[float] = None
 
     @nn.compact
-    def __call__(
-        self, observations: jnp.ndarray, actions: jnp.ndarray, train: bool = False
-    ) -> jnp.ndarray:
+    def __call__(self, observations: jnp.ndarray, actions: jnp.ndarray, train: bool = False) -> jnp.ndarray:
         obs_enc = self.encoder(observations)
         inputs = jnp.concatenate([obs_enc, actions], -1)
         outputs = self.network(inputs, train=train)
@@ -59,9 +57,7 @@ class ContrastiveCritic(nn.Module):
     init_final: Optional[float] = None
 
     @nn.compact
-    def __call__(
-        self, observations: jnp.ndarray, actions: jnp.ndarray, train: bool = False
-    ) -> jnp.ndarray:
+    def __call__(self, observations: jnp.ndarray, actions: jnp.ndarray, train: bool = False) -> jnp.ndarray:
         obs_goal_encoding = self.encoder(observations)
         encoding_dim = obs_goal_encoding.shape[-1] // 2
         obs_encoding, goal_encoding = (
@@ -70,9 +66,7 @@ class ContrastiveCritic(nn.Module):
         )
 
         if self.init_final is not None:
-            kernel_init = partial(
-                nn.initializers.uniform, -self.init_final, self.init_final
-            )
+            kernel_init = partial(nn.initializers.uniform, -self.init_final, self.init_final)
         else:
             kernel_init = default_init
 
@@ -126,26 +120,18 @@ class Policy(nn.Module):
         means = nn.Dense(self.action_dim, kernel_init=default_init())(outputs)
         if self.fixed_std is None:
             if self.state_dependent_std:
-                log_stds = nn.Dense(self.action_dim, kernel_init=default_init())(
-                    outputs
-                )
+                log_stds = nn.Dense(self.action_dim, kernel_init=default_init())(outputs)
             else:
-                log_stds = self.param(
-                    "log_stds", nn.initializers.zeros, (self.action_dim,)
-                )
+                log_stds = self.param("log_stds", nn.initializers.zeros, (self.action_dim,))
         else:
             log_stds = jnp.log(jnp.array(self.fixed_std))
 
         log_stds = jnp.clip(log_stds, self.log_std_min, self.log_std_max) / temperature
 
         if self.tanh_squash_distribution:
-            distribution = TanhMultivariateNormalDiag(
-                loc=means, scale_diag=jnp.exp(log_stds)
-            )
+            distribution = TanhMultivariateNormalDiag(loc=means, scale_diag=jnp.exp(log_stds))
         else:
-            distribution = distrax.MultivariateNormalDiag(
-                loc=means, scale_diag=jnp.exp(log_stds)
-            )
+            distribution = distrax.MultivariateNormalDiag(loc=means, scale_diag=jnp.exp(log_stds))
 
         return distribution
 

@@ -31,12 +31,8 @@ logging.set_verbosity(logging.WARNING)
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_multi_string(
-    "checkpoint_weights_path", None, "Path to checkpoint", required=True
-)
-flags.DEFINE_multi_string(
-    "checkpoint_config_path", None, "Path to checkpoint config JSON", required=True
-)
+flags.DEFINE_multi_string("checkpoint_weights_path", None, "Path to checkpoint", required=True)
+flags.DEFINE_multi_string("checkpoint_config_path", None, "Path to checkpoint config JSON", required=True)
 flags.DEFINE_integer("im_size", None, "Image size", required=True)
 flags.DEFINE_string("video_save_path", None, "Path to save video")
 flags.DEFINE_integer("num_timesteps", 120, "num timesteps")
@@ -57,6 +53,7 @@ FIXED_STD = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
 ##############################################################################
 
+
 def load_checkpoint(checkpoint_weights_path, checkpoint_config_path):
     with open(checkpoint_config_path, "r") as f:
         config = json.load(f)
@@ -73,15 +70,9 @@ def load_checkpoint(checkpoint_weights_path, checkpoint_config_path):
         example_actions = np.zeros((1, 7), dtype=np.float32)
 
     if obs_horizon is not None:
-        example_obs = {
-            "image": np.zeros(
-                (1, obs_horizon, FLAGS.im_size, FLAGS.im_size, 3), dtype=np.uint8
-            )
-        }
+        example_obs = {"image": np.zeros((1, obs_horizon, FLAGS.im_size, FLAGS.im_size, 3), dtype=np.uint8)}
     else:
-        example_obs = {
-            "image": np.zeros((1, FLAGS.im_size, FLAGS.im_size, 3), dtype=np.uint8)
-        }
+        example_obs = {"image": np.zeros((1, FLAGS.im_size, FLAGS.im_size, 3), dtype=np.uint8)}
 
     example_batch = {
         "observations": example_obs,
@@ -112,15 +103,11 @@ def load_checkpoint(checkpoint_weights_path, checkpoint_config_path):
     def get_action(obs, goal_obs):
         nonlocal rng
         rng, key = jax.random.split(rng)
-        action = jax.device_get(
-            agent.sample_actions(obs, goal_obs, seed=key, argmax=FLAGS.deterministic)
-        )
+        action = jax.device_get(agent.sample_actions(obs, goal_obs, seed=key, argmax=FLAGS.deterministic))
         action = action * action_std + action_mean
         return action
 
-    text_processor = text_processors[config["text_processor"]](
-        **config["text_processor_kwargs"]
-    )
+    text_processor = text_processors[config["text_processor"]](**config["text_processor_kwargs"])
 
     return get_action, text_processor, obs_horizon
 
@@ -136,9 +123,7 @@ def main(_):
         assert tf.io.gfile.exists(checkpoint_weights_path), checkpoint_weights_path
         checkpoint_num = int(checkpoint_weights_path.split("_")[-1])
         run_name = checkpoint_config_path.split("/")[-1]
-        policies[f"{run_name}-{checkpoint_num}"] = load_checkpoint(
-            checkpoint_weights_path, checkpoint_config_path
-        )
+        policies[f"{run_name}-{checkpoint_num}"] = load_checkpoint(checkpoint_weights_path, checkpoint_config_path)
 
     if FLAGS.initial_eep is not None:
         assert isinstance(FLAGS.initial_eep, list)
@@ -216,12 +201,9 @@ def main(_):
         try:
             while t < FLAGS.num_timesteps:
                 if time.time() > last_tstep + STEP_DURATION or FLAGS.blocking:
-                    image_obs = (
-                        obs["image"]
-                        .reshape(3, FLAGS.im_size, FLAGS.im_size)
-                        .transpose(1, 2, 0)
-                        * 255
-                    ).astype(np.uint8)
+                    image_obs = (obs["image"].reshape(3, FLAGS.im_size, FLAGS.im_size).transpose(1, 2, 0) * 255).astype(
+                        np.uint8
+                    )
                     obs = {"image": image_obs, "proprio": obs["state"]}
                     goal_obs = {"language": instruction}
                     if obs_horizon is not None:
@@ -246,10 +228,7 @@ def main(_):
                         else:
                             num_consecutive_gripper_change_actions = 0
 
-                        if (
-                            num_consecutive_gripper_change_actions
-                            >= STICKY_GRIPPER_NUM_STEPS
-                        ):
+                        if num_consecutive_gripper_change_actions >= STICKY_GRIPPER_NUM_STEPS:
                             is_gripper_closed = not is_gripper_closed
                             num_consecutive_gripper_change_actions = 0
 
@@ -263,9 +242,7 @@ def main(_):
                             action[5] = 0
 
                         # perform environment step
-                        obs, _, _, _ = env.step(
-                            action, last_tstep + STEP_DURATION, blocking=FLAGS.blocking
-                        )
+                        obs, _, _, _ = env.step(action, last_tstep + STEP_DURATION, blocking=FLAGS.blocking)
 
                         # save image
                         images.append(image_obs)

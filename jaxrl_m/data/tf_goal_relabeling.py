@@ -37,9 +37,7 @@ def uniform(traj, *, reached_proportion):
     goal_reached_mask = tf.random.uniform([traj_len]) < reached_proportion
 
     # the last transition must be goal-reaching
-    goal_reached_mask = tf.logical_or(
-        goal_reached_mask, tf.range(traj_len) == traj_len - 1
-    )
+    goal_reached_mask = tf.logical_or(goal_reached_mask, tf.range(traj_len) == traj_len - 1)
 
     # make goal-reaching transitions have an offset of 0
     goal_idxs = tf.where(goal_reached_mask, tf.range(traj_len), goal_idxs)
@@ -80,9 +78,7 @@ def last_state_upweighted(traj, *, reached_proportion):
     # select random transitions to relabel as goal-reaching
     goal_reached_mask = tf.random.uniform([traj_len]) < reached_proportion
     # last transition is always goal-reaching
-    goal_reached_mask = tf.logical_or(
-        goal_reached_mask, tf.range(traj_len) == traj_len - 1
-    )
+    goal_reached_mask = tf.logical_or(goal_reached_mask, tf.range(traj_len) == traj_len - 1)
 
     # the goal will come from the current transition if the goal was reached
     offsets = tf.where(goal_reached_mask, 0, offsets)
@@ -125,17 +121,13 @@ def geometric(traj, *, reached_proportion, discount):
 
     probs = is_future_mask * d
     # The indexing changes the shape from [seq_len, 1] to [seq_len]
-    goal_idxs = tf.random.categorical(
-        logits=tf.math.log(probs), num_samples=1, dtype=tf.int32
-    )[:, 0]
+    goal_idxs = tf.random.categorical(logits=tf.math.log(probs), num_samples=1, dtype=tf.int32)[:, 0]
 
     # select a random proportion of transitions to relabel with the next observation
     goal_reached_mask = tf.random.uniform([traj_len]) < reached_proportion
 
     # the last transition must be goal-reaching
-    goal_reached_mask = tf.logical_or(
-        goal_reached_mask, tf.range(traj_len) == traj_len - 1
-    )
+    goal_reached_mask = tf.logical_or(goal_reached_mask, tf.range(traj_len) == traj_len - 1)
 
     # make goal-reaching transitions have an offset of 0
     goal_idxs = tf.where(goal_reached_mask, tf.range(traj_len), goal_idxs)

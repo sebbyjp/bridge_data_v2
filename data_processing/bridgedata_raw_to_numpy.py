@@ -43,6 +43,7 @@ Can write directly to Google Cloud Storage, but not read from it.
 
 Written by Kevin Black (kvablack@berkeley.edu).
 """
+
 import copy
 import glob
 import os
@@ -70,9 +71,7 @@ flags.DEFINE_integer(
     "{input_path}/dir_1/dir_2/.../dir_{depth-1}/2022-01-01_00-00-00/...",
 )
 flags.DEFINE_bool("overwrite", False, "Overwrite existing files")
-flags.DEFINE_float(
-    "train_proportion", 0.9, "Proportion of data to use for training (rather than val)"
-)
+flags.DEFINE_float("train_proportion", 0.9, "Proportion of data to use for training (rather than val)")
 flags.DEFINE_integer("num_workers", 8, "Number of threads to use")
 flags.DEFINE_integer("im_size", 128, "Image size")
 
@@ -89,11 +88,7 @@ def process_images(path):  # processes images at a trajectory level
         [x for x in os.listdir(path) if "images" in x and not "depth" in x],
         key=lambda x: int(x.split("images")[1]),
     )
-    image_path = [
-        os.path.join(path, x)
-        for x in os.listdir(path)
-        if "images" in x and not "depth" in x
-    ]
+    image_path = [os.path.join(path, x) for x in os.listdir(path) if "images" in x and not "depth" in x]
     image_path = sorted(image_path, key=lambda x: int(x.split("images")[1]))
 
     images_out = defaultdict(list)
@@ -192,13 +187,9 @@ def process_dc(path, train_ratio=0.9):
             out["next_observations"]["state"] = next_state
             out["next_observations"]["time_stamp"] = next_time_stamp
 
-            out["observations"] = [
-                dict(zip(out["observations"], t))
-                for t in zip(*out["observations"].values())
-            ]
+            out["observations"] = [dict(zip(out["observations"], t)) for t in zip(*out["observations"].values())]
             out["next_observations"] = [
-                dict(zip(out["next_observations"], t))
-                for t in zip(*out["next_observations"].values())
+                dict(zip(out["next_observations"], t)) for t in zip(*out["next_observations"].values())
             ]
 
             out["actions"] = acts
@@ -239,9 +230,7 @@ def process_dc(path, train_ratio=0.9):
 
 def make_numpy(path, train_proportion):
     dirname = os.path.abspath(path)
-    outpath = os.path.join(
-        FLAGS.output_path, *dirname.split(os.sep)[-(max(FLAGS.depth - 1, 1)) :]
-    )
+    outpath = os.path.join(FLAGS.output_path, *dirname.split(os.sep)[-(max(FLAGS.depth - 1, 1)) :])
 
     if os.path.exists(outpath):
         if FLAGS.overwrite:

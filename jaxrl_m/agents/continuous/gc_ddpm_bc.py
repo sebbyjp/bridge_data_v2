@@ -48,9 +48,7 @@ class GCDDPMBCAgent(flax.struct.PyTreeNode):
     def update(self, batch: Batch, pmap_axis: str = None):
         def actor_loss_fn(params, rng):
             key, rng = jax.random.split(rng)
-            time = jax.random.randint(
-                key, (batch["actions"].shape[0],), 0, self.config["diffusion_steps"]
-            )
+            time = jax.random.randint(key, (batch["actions"].shape[0],), 0, self.config["diffusion_steps"])
             key, rng = jax.random.split(rng)
             noise_sample = jax.random.normal(key, batch["actions"].shape)
 
@@ -77,9 +75,7 @@ class GCDDPMBCAgent(flax.struct.PyTreeNode):
         loss_fns = {"actor": actor_loss_fn}
 
         # compute gradients and update params
-        new_state, info = self.state.apply_loss_fns(
-            loss_fns, pmap_axis=pmap_axis, has_aux=True
-        )
+        new_state, info = self.state.apply_loss_fns(loss_fns, pmap_axis=pmap_axis, has_aux=True)
 
         # update the target params
         new_state = new_state.target_update(self.config["target_update_rate"])
@@ -115,22 +111,16 @@ class GCDDPMBCAgent(flax.struct.PyTreeNode):
             )
 
             alpha_1 = 1 / jnp.sqrt(self.config["alphas"][time])
-            alpha_2 = (1 - self.config["alphas"][time]) / (
-                jnp.sqrt(1 - self.config["alpha_hats"][time])
-            )
+            alpha_2 = (1 - self.config["alphas"][time]) / (jnp.sqrt(1 - self.config["alpha_hats"][time]))
             current_x = alpha_1 * (current_x - alpha_2 * eps_pred)
 
             rng, key = jax.random.split(rng)
             z = jax.random.normal(key, shape=current_x.shape)
             z_scaled = temperature * z
-            current_x = current_x + (time > 0) * (
-                jnp.sqrt(self.config["betas"][time]) * z_scaled
-            )
+            current_x = current_x + (time > 0) * (jnp.sqrt(self.config["betas"][time]) * z_scaled)
 
             if clip_sampler:
-                current_x = jnp.clip(
-                    current_x, self.config["action_min"], self.config["action_max"]
-                )
+                current_x = jnp.clip(current_x, self.config["action_min"], self.config["action_max"])
 
             return (current_x, rng), ()
 
@@ -163,9 +153,7 @@ class GCDDPMBCAgent(flax.struct.PyTreeNode):
 
     @jax.jit
     def get_debug_metrics(self, batch, seed, gripper_close_val=None):
-        actions = self.sample_actions(
-            observations=batch["observations"], goals=batch["goals"], seed=seed
-        )
+        actions = self.sample_actions(observations=batch["observations"], goals=batch["goals"], seed=seed)
 
         metrics = {"mse": ((actions - batch["actions"]) ** 2).sum((-2, -1)).mean()}
 
@@ -246,9 +234,7 @@ class GCDDPMBCAgent(flax.struct.PyTreeNode):
             example_time = jnp.zeros((actions.shape[0], 1))
         else:
             example_time = jnp.zeros((1,))
-        params = model_def.init(
-            init_rng, actor=[(observations, goals), actions, example_time]
-        )["params"]
+        params = model_def.init(init_rng, actor=[(observations, goals), actions, example_time])["params"]
 
         # no decay
         lr_schedule = optax.warmup_cosine_decay_schedule(
@@ -286,9 +272,7 @@ class GCDDPMBCAgent(flax.struct.PyTreeNode):
             betas = jnp.array(vp_beta_schedule(diffusion_steps))
 
         alphas = 1 - betas
-        alpha_hat = jnp.array(
-            [jnp.prod(alphas[: i + 1]) for i in range(diffusion_steps)]
-        )
+        alpha_hat = jnp.array([jnp.prod(alphas[: i + 1]) for i in range(diffusion_steps)])
 
         config = flax.core.FrozenDict(
             dict(

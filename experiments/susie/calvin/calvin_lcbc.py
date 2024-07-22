@@ -80,9 +80,7 @@ def main(_):
     # load datasets
     assert type(FLAGS.calvin_dataset_config.include[0]) == list
     task_paths = [
-        glob_to_path_list(
-            path, prefix=FLAGS.config.data_path, exclude=FLAGS.calvin_dataset_config.exclude
-        )
+        glob_to_path_list(path, prefix=FLAGS.config.data_path, exclude=FLAGS.calvin_dataset_config.exclude)
         for path in FLAGS.calvin_dataset_config.include
     ]
 
@@ -112,27 +110,24 @@ def main(_):
     if FLAGS.config.text_processor is None:
         text_processor = None
     else:
-        text_processor = text_processors[FLAGS.config.text_processor](
-            **FLAGS.config.text_processor_kwargs
-        )
+        text_processor = text_processors[FLAGS.config.text_processor](**FLAGS.config.text_processor_kwargs)
 
     def process_text(batch):
         if text_processor is None:
             batch["goals"].pop("language")
         else:
             batch["goals"]["language"] = text_processor.encode(
-                #[s.decode("utf-8") for s in batch["goals"]["language"]]
+                # [s.decode("utf-8") for s in batch["goals"]["language"]]
                 [s for s in batch["goals"]["language"]]
             )
         return batch
+
     train_data_iter = map(shard_fn, map(process_text, train_data.tf_dataset.as_numpy_iterator()))
 
     example_batch = next(train_data_iter)
     logging.info(f"Batch size: {example_batch['observations']['image'].shape[0]}")
     logging.info(f"Number of devices: {num_devices}")
-    logging.info(
-        f"Batch size per device: {example_batch['observations']['image'].shape[0] // num_devices}"
-    )
+    logging.info(f"Batch size per device: {example_batch['observations']['image'].shape[0] // num_devices}")
 
     # define encoder
     encoder_def = encoders[FLAGS.config.encoder](**FLAGS.config.encoder_kwargs)
@@ -180,9 +175,7 @@ def main(_):
 
         if (i + 1) % FLAGS.config.save_interval == 0:
             logging.info("Saving checkpoint...")
-            checkpoint_path = checkpoints.save_checkpoint(
-                save_dir, agent, step=i + 1, keep=1e6
-            )
+            checkpoint_path = checkpoints.save_checkpoint(save_dir, agent, step=i + 1, keep=1e6)
             logging.info("Saved checkpoint to %s", checkpoint_path)
 
         timer.tock("total")

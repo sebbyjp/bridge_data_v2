@@ -51,9 +51,7 @@ class LCBCAgent(flax.struct.PyTreeNode):
             )
 
         # compute gradients and update params
-        new_state, info = self.state.apply_loss_fns(
-            loss_fn, pmap_axis=pmap_axis, has_aux=True
-        )
+        new_state, info = self.state.apply_loss_fns(loss_fn, pmap_axis=pmap_axis, has_aux=True)
 
         # log learning rates
         info["lr"] = self.lr_schedule(self.state.step)
@@ -62,13 +60,7 @@ class LCBCAgent(flax.struct.PyTreeNode):
 
     @partial(jax.jit, static_argnames="argmax")
     def sample_actions(
-        self,
-        observations: np.ndarray,
-        goals: np.ndarray,
-        *,
-        seed: PRNGKey,
-        temperature: float = 1.0,
-        argmax=False
+        self, observations: np.ndarray, goals: np.ndarray, *, seed: PRNGKey, temperature: float = 1.0, argmax=False
     ) -> jnp.ndarray:
         dist = self.state.apply_fn(
             {"params": self.state.params},
@@ -119,20 +111,10 @@ class LCBCAgent(flax.struct.PyTreeNode):
         warmup_steps: int = 1000,
         decay_steps: int = 1000000,
     ):
-
-        encoder_def = LCEncodingWrapper(
-            encoder=encoder_def, use_proprio=use_proprio, stop_gradient=False
-        )
+        encoder_def = LCEncodingWrapper(encoder=encoder_def, use_proprio=use_proprio, stop_gradient=False)
 
         network_kwargs["activate_final"] = True
-        networks = {
-            "actor": Policy(
-                encoder_def,
-                MLP(**network_kwargs),
-                action_dim=actions.shape[-1],
-                **policy_kwargs
-            )
-        }
+        networks = {"actor": Policy(encoder_def, MLP(**network_kwargs), action_dim=actions.shape[-1], **policy_kwargs)}
 
         model_def = ModuleDict(networks)
 

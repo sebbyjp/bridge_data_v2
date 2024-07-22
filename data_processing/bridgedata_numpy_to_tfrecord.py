@@ -29,6 +29,7 @@ Can read/write directly from/to Google Cloud Storage.
 
 Written by Kevin Black (kvablack@berkeley.edu).
 """
+
 import os
 from multiprocessing import Pool
 
@@ -51,9 +52,7 @@ flags.DEFINE_integer("num_workers", 8, "Number of threads to use")
 
 
 def tensor_feature(value):
-    return tf.train.Feature(
-        bytes_list=tf.train.BytesList(value=[tf.io.serialize_tensor(value).numpy()])
-    )
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.io.serialize_tensor(value).numpy()]))
 
 
 def process(path):
@@ -109,12 +108,8 @@ def process(path):
                             )
                         ),
                         "language": tensor_feature(traj["language"]),
-                        "actions": tensor_feature(
-                            np.array(traj["actions"], dtype=np.float32)
-                        ),
-                        "terminals": tensor_feature(
-                            np.zeros(len(traj["actions"]), dtype=np.bool_)
-                        ),
+                        "actions": tensor_feature(np.array(traj["actions"], dtype=np.float32)),
+                        "terminals": tensor_feature(np.zeros(len(traj["actions"]), dtype=np.bool_)),
                         "truncates": tensor_feature(truncates),
                     }
                 )
@@ -125,9 +120,7 @@ def process(path):
 def main(_):
     assert FLAGS.depth >= 1
 
-    paths = tf.io.gfile.glob(
-        tf.io.gfile.join(FLAGS.input_path, *("*" * (FLAGS.depth - 1)))
-    )
+    paths = tf.io.gfile.glob(tf.io.gfile.join(FLAGS.input_path, *("*" * (FLAGS.depth - 1))))
     paths = [f"{p}/train/out.npy" for p in paths] + [f"{p}/val/out.npy" for p in paths]
     with Pool(FLAGS.num_workers) as p:
         list(tqdm.tqdm(p.imap(process, paths), total=len(paths)))

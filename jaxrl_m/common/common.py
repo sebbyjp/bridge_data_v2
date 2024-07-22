@@ -22,9 +22,7 @@ def shard_batch(batch, sharding):
         sharding: A jax Sharding object with shape (num_devices,).
     """
     return jax.tree_map(
-        lambda x: jax.device_put(
-            x, sharding.reshape(sharding.shape[0], *((1,) * (x.ndim - 1)))
-        ),
+        lambda x: jax.device_put(x, sharding.reshape(sharding.shape[0], *((1,) * (x.ndim - 1)))),
         batch,
     )
 
@@ -127,9 +125,7 @@ class JaxRLTrainState(struct.PyTreeNode):
 
             new_target_params = tau * params + (1 - tau) * target_params
         """
-        new_target_params = jax.tree_map(
-            lambda p, tp: p * tau + tp * (1 - tau), self.params, self.target_params
-        )
+        new_target_params = jax.tree_map(lambda p, tp: p * tau + tp * (1 - tau), self.params, self.target_params)
         return self.replace(target_params=new_target_params)
 
     def apply_gradients(self, *, grads: Any) -> "JaxRLTrainState":
@@ -145,26 +141,18 @@ class JaxRLTrainState(struct.PyTreeNode):
             grads,
         )
         updates = self._tx_tree_map(lambda _, x: x[0], self.txs, updates_and_new_states)
-        new_opt_states = self._tx_tree_map(
-            lambda _, x: x[1], self.txs, updates_and_new_states
-        )
+        new_opt_states = self._tx_tree_map(lambda _, x: x[1], self.txs, updates_and_new_states)
 
         # not the cleanest, I know, but this flattens the leaves of `updates`
         # into a list where leaves are defined by `self.txs`
         updates_flat = []
-        self._tx_tree_map(
-            lambda _, update: updates_flat.append(update), self.txs, updates
-        )
+        self._tx_tree_map(lambda _, update: updates_flat.append(update), self.txs, updates)
 
         # apply all the updates additively
-        updates_acc = jax.tree_map(
-            lambda *xs: jnp.sum(jnp.array(xs), axis=0), *updates_flat
-        )
+        updates_acc = jax.tree_map(lambda *xs: jnp.sum(jnp.array(xs), axis=0), *updates_flat)
         new_params = optax.apply_updates(self.params, updates_acc)
 
-        return self.replace(
-            step=self.step + 1, params=new_params, opt_states=new_opt_states
-        )
+        return self.replace(step=self.step + 1, params=new_params, opt_states=new_opt_states)
 
     def apply_loss_fns(
         self, loss_fns: Any, pmap_axis: str = None, has_aux: bool = False
@@ -220,9 +208,7 @@ class JaxRLTrainState(struct.PyTreeNode):
             return self.apply_gradients(grads=grads_and_aux)
 
     @classmethod
-    def create(
-        cls, *, apply_fn, params, txs, target_params=None, rng=jax.random.PRNGKey(0)
-    ):
+    def create(cls, *, apply_fn, params, txs, target_params=None, rng=jax.random.PRNGKey(0)):
         """
         Initializes a new train state.
 

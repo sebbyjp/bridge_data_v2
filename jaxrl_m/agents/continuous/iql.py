@@ -21,7 +21,7 @@ import flax.linen as nn
 
 def expectile_loss(diff, expectile=0.5):
     weight = jnp.where(diff > 0, expectile, (1 - expectile))
-    return weight * (diff ** 2)
+    return weight * (diff**2)
 
 
 def iql_value_loss(q, v, expectile):
@@ -86,9 +86,7 @@ class IQLAgent(flax.struct.PyTreeNode):
                 batch["next_observations"],
                 name="value",
             )
-            target_q = (
-                batch["rewards"] + self.config["discount"] * next_v * batch["masks"]
-            )
+            target_q = batch["rewards"] + self.config["discount"] * next_v * batch["masks"]
             q = self.state.apply_fn(
                 {"params": params},
                 batch["observations"],
@@ -117,9 +115,7 @@ class IQLAgent(flax.struct.PyTreeNode):
                 batch["next_observations"],
                 name="value",
             )
-            target_q = (
-                batch["rewards"] + self.config["discount"] * next_v * batch["masks"]
-            )
+            target_q = batch["rewards"] + self.config["discount"] * next_v * batch["masks"]
 
             v = self.state.apply_fn(
                 {"params": self.state.params},  # no gradient flows through here
@@ -150,9 +146,7 @@ class IQLAgent(flax.struct.PyTreeNode):
         }
 
         # compute gradients and update params
-        new_state, info = self.state.apply_loss_fns(
-            loss_fns, pmap_axis=pmap_axis, has_aux=True
-        )
+        new_state, info = self.state.apply_loss_fns(loss_fns, pmap_axis=pmap_axis, has_aux=True)
 
         # update the target params
         new_state = new_state.target_update(self.config["target_update_rate"])
@@ -193,9 +187,7 @@ class IQLAgent(flax.struct.PyTreeNode):
         log_probs = dist.log_prob(batch["actions"])
         mse = ((pi_actions - batch["actions"]) ** 2).sum(-1)
 
-        v = self.state.apply_fn(
-            {"params": self.state.params}, batch["observations"], name="value"
-        )
+        v = self.state.apply_fn({"params": self.state.params}, batch["observations"], name="value")
         next_v = self.state.apply_fn(
             {"params": self.state.target_params},
             batch["next_observations"],
@@ -264,9 +256,7 @@ class IQLAgent(flax.struct.PyTreeNode):
         temperature=1.0,
         target_update_rate=0.002,
     ):
-        encoder_def = EncodingWrapper(
-            encoder=encoder_def, use_proprio=use_proprio, stop_gradient=False
-        )
+        encoder_def = EncodingWrapper(encoder=encoder_def, use_proprio=use_proprio, stop_gradient=False)
 
         if shared_encoder:
             encoders = {
